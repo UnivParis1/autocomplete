@@ -573,7 +573,9 @@ export default function autocomplete<T extends AutocompleteItem>(settings: Autoc
     function startFetch(inputText: string, trigger: EventTrigger, cursorPos: number) {
         if (destroyed) return;
         const savedFetchCounter = ++fetchCounter;
+        input.classList.add('ac-loading');
         settings.fetch(inputText, function (elements: T[] | false): void {
+            input.classList.remove('ac-loading');
             if (fetchCounter === savedFetchCounter && elements) {
                 items = elements;
                 inputValue = inputText;
