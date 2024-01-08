@@ -626,12 +626,6 @@ export default function autocomplete<T extends AutocompleteItem>(settings: Autoc
         evt.preventDefault();
     });
 
-    /**
-     * Fixes #30: autocomplete closes when scrollbar is clicked in IE
-     * See: https://stackoverflow.com/a/9210267/13172349
-     */
-    container.addEventListener('focus', () => input.focus());
-
     // If the custom autocomplete container is already appended to the DOM during widget initialization, detach it.
     detach();
 
