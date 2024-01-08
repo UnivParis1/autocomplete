@@ -115,9 +115,8 @@ export interface AutocompleteSettings<T extends AutocompleteItem> {
      * @param {HTMLInputElement | HTMLTextAreaElement} input - input box associated with autocomplete
      * @param {ClientRect | DOMRect} inputRect - size of the input box and its position relative to the viewport
      * @param {HTMLDivElement} container - container with suggestions
-     * @param {number} maxHeight - max height that can be used by autocomplete
      */
-    customize?: (input: HTMLInputElement | HTMLTextAreaElement, inputRect: ClientRect | DOMRect, container: HTMLDivElement, maxHeight: number) => void;
+    customize?: (input: HTMLInputElement | HTMLTextAreaElement, inputRect: ClientRect | DOMRect, container: HTMLDivElement) => void;
 
     /**
      * Controls form submission when the ENTER key is pressed in a input field.
@@ -275,7 +274,6 @@ export default function autocomplete<T extends AutocompleteItem>(settings: Autoc
         containerStyle.height = 'auto';
         containerStyle.width = input.offsetWidth + 'px';
 
-        let maxHeight = 0;
         let inputRect: DOMRect | undefined;
 
         function calc() {
@@ -293,24 +291,22 @@ export default function autocomplete<T extends AutocompleteItem>(settings: Autoc
             containerStyle.top = top + 'px';
             containerStyle.left = left + 'px';
 
-            maxHeight = window.innerHeight - (inputRect.top + input.offsetHeight);
-
-            if (maxHeight < 0) {
-                maxHeight = 0;
-            }
-
             containerStyle.top = top + 'px';
             containerStyle.bottom = '';
             containerStyle.left = left + 'px';
-            containerStyle.maxHeight = maxHeight + 'px';
         }
 
         // the calc method must be called twice, otherwise the calculation may be wrong on resize event (chrome browser)
         calc();
         calc();
 
+        // do our best to display all choices
+        container.scrollIntoView({ block: "nearest" }) 
+        // but ensure the input is still visible
+        input.scrollIntoView({ block: "nearest" })
+  
         if (settings.customize && inputRect) {
-            settings.customize(input, inputRect, container, maxHeight);
+            settings.customize(input, inputRect, container);
         }
     }
 
@@ -398,24 +394,6 @@ export default function autocomplete<T extends AutocompleteItem>(settings: Autoc
         updateScroll();
     }
 
-    function updateIfDisplayed() {
-        if (containerDisplayed()) {
-            update();
-        }
-    }
-
-    function resizeEventHandler() {
-        updateIfDisplayed();
-    }
-
-    function scrollEventHandler(e: Event) {
-        if (e.target !== container) {
-            updateIfDisplayed();
-        } else {
-            e.preventDefault();
-        }
-    }
-
     function inputEventHandler() {
         if (!suppressAutocomplete) {
             fetch(EventTrigger.Keyboard);
@@ -429,22 +407,7 @@ export default function autocomplete<T extends AutocompleteItem>(settings: Autoc
         const elements = container.getElementsByClassName('selected');
         if (elements.length > 0) {
             let element = elements[0] as HTMLDivElement;
-
-            // make group visible
-            const previous = element.previousElementSibling as HTMLDivElement;
-            if (previous && previous.className.indexOf('group') !== -1 && !previous.previousElementSibling) {
-                element = previous;
-            }
-
-            if (element.offsetTop < container.scrollTop) {
-                container.scrollTop = element.offsetTop;
-            } else {
-                const selectBottom = element.offsetTop + element.offsetHeight;
-                const containerBottom = container.scrollTop + container.offsetHeight;
-                if (selectBottom > containerBottom) {
-                    container.scrollTop += selectBottom - containerBottom;
-                }
-            }
+            element.scrollIntoView({ block: 'nearest' })
         }
     }
 
@@ -641,8 +604,6 @@ export default function autocomplete<T extends AutocompleteItem>(settings: Autoc
         input.removeEventListener('keydown', keydownEventHandler as EventListenerOrEventListenerObject);
         input.removeEventListener('input', inputEventHandler as EventListenerOrEventListenerObject);
         input.removeEventListener('blur', blurEventHandler);
-        window.removeEventListener('resize', resizeEventHandler);
-        doc.removeEventListener('scroll', scrollEventHandler, true);
         input.removeAttribute('role');
         input.removeAttribute('aria-expanded');
         input.removeAttribute('aria-autocomplete');
@@ -662,8 +623,6 @@ export default function autocomplete<T extends AutocompleteItem>(settings: Autoc
     input.addEventListener('input', inputEventHandler as EventListenerOrEventListenerObject);
     input.addEventListener('blur', blurEventHandler);
     input.addEventListener('focus', focusEventHandler);
-    window.addEventListener('resize', resizeEventHandler);
-    doc.addEventListener('scroll', scrollEventHandler, true);
 
     return {
         destroy,
