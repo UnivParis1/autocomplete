@@ -8,15 +8,15 @@ export default {
   output: [
     {
       file: pkg.main,
-      format: "umd",
+      format: "iife",
       sourcemap: true,
-      name: "autocomplete",
+      name: "window.kraaden_autocomplete",
     },
     {
       file: pkg.main.replace(".js", ".min.js"),
-      format: "umd",
+      format: "iife",
       sourcemap: true,
-      name: "autocomplete",
+      name: "window.kraaden_autocomplete",
       plugins: [
         terser({
           compress: true,
