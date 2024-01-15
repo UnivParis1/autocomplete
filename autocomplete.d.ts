@@ -98,9 +98,8 @@ export interface AutocompleteSettings<T extends AutocompleteItem> {
      * @param {HTMLInputElement | HTMLTextAreaElement} input - input box associated with autocomplete
      * @param {ClientRect | DOMRect} inputRect - size of the input box and its position relative to the viewport
      * @param {HTMLDivElement} container - container with suggestions
-     * @param {number} maxHeight - max height that can be used by autocomplete
      */
-    customize?: (input: HTMLInputElement | HTMLTextAreaElement, inputRect: ClientRect | DOMRect, container: HTMLDivElement, maxHeight: number) => void;
+    customize?: (input: HTMLInputElement | HTMLTextAreaElement, inputRect: ClientRect | DOMRect, container: HTMLDivElement) => void;
     /**
      * Controls form submission when the ENTER key is pressed in a input field.
      */
