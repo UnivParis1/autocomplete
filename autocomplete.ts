@@ -514,7 +514,7 @@ export default function autocomplete<T extends AutocompleteItem>(settings: Autoc
     }
 
     function fetch(trigger: EventTrigger) {
-        if (input.value.length >= minLen || trigger === EventTrigger.Focus) {
+        if (input.value.length >= minLen) {
             const before = input.value
             clearDebounceTimer();
             debounceTimer = window.setTimeout(
