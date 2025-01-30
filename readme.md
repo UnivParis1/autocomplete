@@ -4,7 +4,7 @@ Demo: https://smartscheduling.com/en/documentation/autocomplete
 
 ## Installation
 
-If you want to use the library in browser, just include the `autocomplete.js` and `autocomplete.css` into your HTML file.
+If you want to use the library in a browser, just include `autocomplete.js` and `autocomplete.css` in your HTML file.
 
 For `node.js`:
 
@@ -12,7 +12,7 @@ For `node.js`:
 npm install autocompleter
 ```
 
-Then import it into your javascript code:
+Then import it into your JavaScript code:
 
 ```javascript
 import autocomplete from "autocompleter";
@@ -50,13 +50,13 @@ autocomplete({
 
 ## Use with Typescript and Webpack
 
-Simply import the autocompleter in your typescript file:
+Simply import the autocompleter in your TypeScript file:
 
 ```javascript
 import autocomplete from "autocompleter";
 ```
 
-and call the `autocomplete` function as showed below:
+Then call the `autocomplete` function as shown below:
 
 ```javascript
 // replace the `MyInterface` interface with the interface you want to use with autocomplete
@@ -73,7 +73,7 @@ autocomplete<MyInterface>({
 });
 ```
 
-If your custom interface doesn't have the `label` property, you might get a compilation error from typescript. In this case just add an additional type to your code and pass it to the autocompleter:
+If your custom interface lacks the `label` property, TypeScript may produce a compilation error. To avoid this, use an additional type:
 
 ```javascript
 import autocomplete, { AutocompleteItem } from 'autocompleter';
@@ -99,7 +99,7 @@ autocomplete<MyItem>({
 });
 ```
 
-If your interface doesn't have a `label` property, you also have to provide a custom render function.
+If your interface lacks a `label` property, you must provide a custom render function.
 
 ## Options
 
@@ -269,6 +269,10 @@ autocomplete({
 ```
 
 [Try online](https://jsbin.com/fololajava/edit?html,js,output)
+
+## Using the Library in a Pure JavaScript Environment
+
+If you're using this library in a pure JavaScript environment, note that TypeScript enums are transpiled into numeric values. As a result, named enum values are replaced with their corresponding numbers. When calling functions that expect enum values, make sure to pass the correct numeric value instead of the enum name.
 
 ## License
 
