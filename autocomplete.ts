@@ -105,6 +105,12 @@ export interface AutocompleteSettings<T extends AutocompleteItem> {
     fetch: (text: string, update: (items: T[] | false) => void, trigger: EventTrigger, cursorPos: number) => void;
 
     /**
+     * This method will be called if modified text in the input is shorter than `minLength`
+     * @param {string} text - text in the input field
+     */
+    noFetch: (text: string) => void;
+    
+    /**
      * Enforces that the fetch function will only be called once within the specified time frame (in milliseconds) and
      * delays execution. This prevents flooding your server with AJAX requests.
      */
@@ -560,6 +566,7 @@ export default function autocomplete<T extends AutocompleteItem>(settings: Autoc
                 trigger === EventTrigger.Keyboard || trigger === EventTrigger.Mouse ? debounceWaitMs : 0);
         } else {
             clear();
+            if (settings.noFetch) settings.noFetch(input.value)
         }
     }
 
