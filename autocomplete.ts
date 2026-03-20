@@ -178,9 +178,6 @@ export default function autocomplete<T extends AutocompleteItem>(settings: Autoc
     let debounceTimer: number | undefined;
     let destroyed = false;
 
-    // Fixes #104: autocomplete selection is broken on Firefox for Android
-    let suppressAutocomplete = false;
-
     if (settings.minLength !== undefined) {
         minLen = settings.minLength;
     }
@@ -359,12 +356,7 @@ export default function autocomplete<T extends AutocompleteItem>(settings: Autoc
                 div.id = `${container.id}_${index}`;
                 div.setAttribute('role', 'option');
                 div.addEventListener('click', function (ev: MouseEvent): void {
-                    suppressAutocomplete = true;
-                    try {
-                        settings.onSelect(item, input);
-                    } finally {
-                        suppressAutocomplete = false;
-                    }
+                    settings.onSelect(item, input);
                     clear();
                     ev.preventDefault();
                     ev.stopPropagation();
@@ -417,9 +409,7 @@ export default function autocomplete<T extends AutocompleteItem>(settings: Autoc
     }
 
     function inputEventHandler() {
-        if (!suppressAutocomplete) {
-            fetch(EventTrigger.Keyboard);
-        }
+        fetch(EventTrigger.Keyboard);
     }
 
     /**
@@ -522,12 +512,7 @@ export default function autocomplete<T extends AutocompleteItem>(settings: Autoc
             if (preventSubmit === PreventSubmit.OnSelect) {
                 ev.preventDefault();
             }
-            suppressAutocomplete = true;
-            try {
-                settings.onSelect(selected, input);
-            } finally {
-                suppressAutocomplete = false;
-            }
+            settings.onSelect(selected, input);
             clear();
         }
 
@@ -561,9 +546,17 @@ export default function autocomplete<T extends AutocompleteItem>(settings: Autoc
 
     function fetch(trigger: EventTrigger) {
         if (input.value.length >= minLen || trigger === EventTrigger.Focus) {
+            const before = input.value
             clearDebounceTimer();
             debounceTimer = window.setTimeout(
-                () => startFetch(input.value, trigger, input.selectionStart || 0),
+                () => {
+                    if (input.value !== before) {
+                        // Firefox on Android triggers input change event with inputType "insertFromComposition" before input is cleared
+                        //console.log("ignoring fetch since input value changed:", before, "!=", input.value)
+                        return
+                    }
+                    startFetch(input.value, trigger, input.selectionStart || 0)
+                },
                 trigger === EventTrigger.Keyboard || trigger === EventTrigger.Mouse ? debounceWaitMs : 0);
         } else {
             clear();
