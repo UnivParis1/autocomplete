@@ -89,6 +89,11 @@ export interface AutocompleteSettings<T extends AutocompleteItem> {
      */
     fetch: (text: string, update: (items: T[] | false) => void, trigger: EventTrigger, cursorPos: number) => void;
     /**
+     * This method will be called if modified text in the input is shorter than `minLength`
+     * @param {string} text - text in the input field
+     */
+    noFetch: (text: string) => void;
+    /**
      * Enforces that the fetch function will only be called once within the specified time frame (in milliseconds) and
      * delays execution. This prevents flooding your server with AJAX requests.
      */
@@ -98,9 +103,8 @@ export interface AutocompleteSettings<T extends AutocompleteItem> {
      * @param {HTMLInputElement | HTMLTextAreaElement} input - input box associated with autocomplete
      * @param {ClientRect | DOMRect} inputRect - size of the input box and its position relative to the viewport
      * @param {HTMLDivElement} container - container with suggestions
-     * @param {number} maxHeight - max height that can be used by autocomplete
      */
-    customize?: (input: HTMLInputElement | HTMLTextAreaElement, inputRect: ClientRect | DOMRect, container: HTMLDivElement, maxHeight: number) => void;
+    customize?: (input: HTMLInputElement | HTMLTextAreaElement, inputRect: ClientRect | DOMRect, container: HTMLDivElement) => void;
     /**
      * Controls form submission when the ENTER key is pressed in a input field.
      */

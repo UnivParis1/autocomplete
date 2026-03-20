@@ -24,8 +24,6 @@ function autocomplete(settings) {
     var fetchCounter = 0;
     var debounceTimer;
     var destroyed = false;
-    // Fixes #104: autocomplete selection is broken on Firefox for Android
-    var suppressAutocomplete = false;
     if (settings.minLength !== undefined) {
         minLen = settings.minLength;
     }
@@ -104,7 +102,6 @@ function autocomplete(settings) {
         input.setAttribute('aria-expanded', 'true');
         containerStyle.height = 'auto';
         containerStyle.width = input.offsetWidth + 'px';
-        var maxHeight = 0;
         var inputRect;
         function calc() {
             var docEl = doc.documentElement;
@@ -117,20 +114,19 @@ function autocomplete(settings) {
             var left = inputRect.left + scrollLeft - clientLeft;
             containerStyle.top = top + 'px';
             containerStyle.left = left + 'px';
-            maxHeight = window.innerHeight - (inputRect.top + input.offsetHeight);
-            if (maxHeight < 0) {
-                maxHeight = 0;
-            }
             containerStyle.top = top + 'px';
             containerStyle.bottom = '';
             containerStyle.left = left + 'px';
-            containerStyle.maxHeight = maxHeight + 'px';
         }
         // the calc method must be called twice, otherwise the calculation may be wrong on resize event (chrome browser)
         calc();
         calc();
+        // do our best to display all choices
+        container.scrollIntoView({ block: "nearest" });
+        // but ensure the input is still visible
+        input.scrollIntoView({ block: "nearest" });
         if (settings.customize && inputRect) {
-            settings.customize(input, inputRect, container, maxHeight);
+            settings.customize(input, inputRect, container);
         }
     }
     /**
@@ -173,13 +169,7 @@ function autocomplete(settings) {
                 div.id = container.id + "_" + index;
                 div.setAttribute('role', 'option');
                 div.addEventListener('click', function (ev) {
-                    suppressAutocomplete = true;
-                    try {
-                        settings.onSelect(item, input);
-                    }
-                    finally {
-                        suppressAutocomplete = false;
-                    }
+                    settings.onSelect(item, input);
                     clear();
                     ev.preventDefault();
                     ev.stopPropagation();
@@ -211,26 +201,8 @@ function autocomplete(settings) {
         updatePosition();
         updateScroll();
     }
-    function updateIfDisplayed() {
-        if (containerDisplayed()) {
-            update();
-        }
-    }
-    function resizeEventHandler() {
-        updateIfDisplayed();
-    }
-    function scrollEventHandler(e) {
-        if (e.target !== container) {
-            updateIfDisplayed();
-        }
-        else {
-            e.preventDefault();
-        }
-    }
     function inputEventHandler() {
-        if (!suppressAutocomplete) {
-            fetch(0 /* Keyboard */);
-        }
+        fetch(0 /* Keyboard */);
     }
     /**
      * Automatically move scroll bar if selected item is not visible
@@ -239,21 +211,7 @@ function autocomplete(settings) {
         var elements = container.getElementsByClassName('selected');
         if (elements.length > 0) {
             var element = elements[0];
-            // make group visible
-            var previous = element.previousElementSibling;
-            if (previous && previous.className.indexOf('group') !== -1 && !previous.previousElementSibling) {
-                element = previous;
-            }
-            if (element.offsetTop < container.scrollTop) {
-                container.scrollTop = element.offsetTop;
-            }
-            else {
-                var selectBottom = element.offsetTop + element.offsetHeight;
-                var containerBottom = container.scrollTop + container.offsetHeight;
-                if (selectBottom > containerBottom) {
-                    container.scrollTop += selectBottom - containerBottom;
-                }
-            }
+            element.scrollIntoView({ block: 'nearest' });
         }
     }
     function selectPreviousSuggestion() {
@@ -318,13 +276,7 @@ function autocomplete(settings) {
             if (preventSubmit === 2 /* OnSelect */) {
                 ev.preventDefault();
             }
-            suppressAutocomplete = true;
-            try {
-                settings.onSelect(selected, input);
-            }
-            finally {
-                suppressAutocomplete = false;
-            }
+            settings.onSelect(selected, input);
             clear();
         }
         if (preventSubmit === 1 /* Always */) {
@@ -350,19 +302,31 @@ function autocomplete(settings) {
         }
     }
     function fetch(trigger) {
-        if (input.value.length >= minLen || trigger === 1 /* Focus */) {
+        if (input.value.length >= minLen) {
+            var before_1 = input.value;
             clearDebounceTimer();
-            debounceTimer = window.setTimeout(function () { return startFetch(input.value, trigger, input.selectionStart || 0); }, trigger === 0 /* Keyboard */ || trigger === 2 /* Mouse */ ? debounceWaitMs : 0);
+            debounceTimer = window.setTimeout(function () {
+                if (input.value !== before_1) {
+                    // Firefox on Android triggers input change event with inputType "insertFromComposition" before input is cleared
+                    //console.log("ignoring fetch since input value changed:", before, "!=", input.value)
+                    return;
+                }
+                startFetch(input.value, trigger, input.selectionStart || 0);
+            }, trigger === 0 /* Keyboard */ || trigger === 2 /* Mouse */ ? debounceWaitMs : 0);
         }
         else {
             clear();
+            if (settings.noFetch)
+                settings.noFetch(input.value);
         }
     }
     function startFetch(inputText, trigger, cursorPos) {
         if (destroyed)
             return;
         var savedFetchCounter = ++fetchCounter;
+        input.classList.add('ac-loading');
         settings.fetch(inputText, function (elements) {
+            input.classList.remove('ac-loading');
             if (fetchCounter === savedFetchCounter && elements) {
                 items = elements;
                 inputValue = inputText;
@@ -408,11 +372,6 @@ function autocomplete(settings) {
         evt.stopPropagation();
         evt.preventDefault();
     });
-    /**
-     * Fixes #30: autocomplete closes when scrollbar is clicked in IE
-     * See: https://stackoverflow.com/a/9210267/13172349
-     */
-    container.addEventListener('focus', function () { return input.focus(); });
     // If the custom autocomplete container is already appended to the DOM during widget initialization, detach it.
     detach();
     /**
@@ -425,8 +384,6 @@ function autocomplete(settings) {
         input.removeEventListener('keydown', keydownEventHandler);
         input.removeEventListener('input', inputEventHandler);
         input.removeEventListener('blur', blurEventHandler);
-        window.removeEventListener('resize', resizeEventHandler);
-        doc.removeEventListener('scroll', scrollEventHandler, true);
         input.removeAttribute('role');
         input.removeAttribute('aria-expanded');
         input.removeAttribute('aria-autocomplete');
@@ -445,8 +402,6 @@ function autocomplete(settings) {
     input.addEventListener('input', inputEventHandler);
     input.addEventListener('blur', blurEventHandler);
     input.addEventListener('focus', focusEventHandler);
-    window.addEventListener('resize', resizeEventHandler);
-    doc.addEventListener('scroll', scrollEventHandler, true);
     return {
         destroy: destroy,
         fetch: manualFetch
